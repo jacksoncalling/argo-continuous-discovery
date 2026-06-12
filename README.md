@@ -62,6 +62,29 @@ and teaches you the framework along the way.
 
 ---
 
+## Start Fresh (Remove Demo Data)
+
+This repo ships with a worked example using the Babor Beauty Group persona so you can
+see the full workflow in action. When you're ready to run your own discovery session,
+clear the demo data:
+
+1. **Delete interview snapshots:** remove all files in `output/snapshots/`
+2. **Delete experiment cards:** remove all files in `output/experiment-cards/`
+3. **Reset the tree:** in `output/tree.html`, replace the `treeData` object with:
+   ```js
+   const treeData = {
+     outcome: null,
+     opportunities: []
+   };
+   ```
+
+The phase folders (`01-outcome/` through `05-experiments/`), reference materials, and
+examples are reusable — don't delete those. Only the `output/` contents are session-specific.
+
+Or just tell the operator: **"Start fresh — clear the demo data and begin with my outcome."**
+
+---
+
 ## Try It Right Now
 
 Paste this into your first message after setup:

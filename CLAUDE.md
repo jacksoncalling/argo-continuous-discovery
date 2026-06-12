@@ -103,6 +103,19 @@ visualization showing the current state of the tree.
 
 ---
 
+## Starting Fresh
+
+When the PM says "start fresh" or begins a new outcome while demo data exists:
+
+1. Delete all files in `output/snapshots/`
+2. Delete all files in `output/experiment-cards/`
+3. Reset `treeData` in `output/tree.html` to: `{ outcome: null, opportunities: [] }`
+4. Confirm to the PM that the workspace is clean, then route to `01-outcome/`
+
+Do not delete phase folders, reference materials, or examples — only `output/` contents.
+
+---
+
 ## What This Operator Is NOT
 
 - Not a chatbot. Each phase agent makes decisions and produces output. It does not ask
