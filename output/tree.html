@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opportunity Solution Tree</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --border: #e0e0e0;
+    --outcome: #7c3aed;
+    --branch-1: #3b82f6;
+    --branch-2: #ec4899;
+    --branch-3: #f59e0b;
+    --branch-4: #10b981;
+    --branch-5: #6366f1;
+    --route-add: #10b981;
+    --route-merge: #3b82f6;
+    --route-more: #f59e0b;
+    --route-technical: #8b5cf6;
+    --route-reframe: #6366f1;
+    --route-park: #9ca3af;
+    --route-escalate: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 2rem;
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* --- Outcome node --- */
+  .outcome-node {
+    background: var(--card-bg);
+    border: 2px solid var(--outcome);
+    border-radius: 12px;
+    padding: 1.25rem 2rem;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+  }
+  .outcome-node .label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--outcome);
+    margin-bottom: 0.4rem;
+  }
+  .outcome-node .description {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* --- Connector lines --- */
+  .connector-down {
+    width: 2px;
+    height: 2rem;
+    background: var(--border);
+  }
+
+  .branch-connector {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    position: relative;
+    padding-top: 0;
+  }
+  .branch-connector::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 2px;
+    background: var(--border);
+  }
+
+  /* --- Layer rows --- */
+  .layer {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1400px;
+  }
+
+  /* --- Branch wrapper --- */
+  .branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 220px;
+    flex: 1;
+    max-width: 320px;
+  }
+
+  .branch-line {
+    width: 2px;
+    height: 1.5rem;
+  }
+
+  /* --- Cards --- */
+  .card {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    width: 100%;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    position: relative;
+  }
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  .card .card-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.35rem;
+  }
+  .card .card-description {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  /* --- Expandable detail --- */
+  .card-detail {
+    display: none;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .card-detail.open {
+    display: block;
+  }
+
+  .card-detail .detail-row {
+    margin-bottom: 0.5rem;
+  }
+  .card-detail .detail-label {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .card-detail blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 0.75rem;
+    margin: 0.4rem 0;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* --- Tags --- */
+  .tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .tag {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Route badges --- */
+  .route-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    color: white;
+  }
+  .route-add { background: var(--route-add); }
+  .route-merge { background: var(--route-merge); }
+  .route-more { background: var(--route-more); }
+  .route-technical { background: var(--route-technical); }
+  .route-reframe { background: var(--route-reframe); }
+  .route-park { background: var(--route-park); }
+  .route-escalate { background: var(--route-escalate); }
+
+  /* --- Branch colors --- */
+  .branch-1 .card { border-color: var(--branch-1); }
+  .branch-1 .card-label { color: var(--branch-1); }
+  .branch-1 .branch-line { background: var(--branch-1); }
+
+  .branch-2 .card { border-color: var(--branch-2); }
+  .branch-2 .card-label { color: var(--branch-2); }
+  .branch-2 .branch-line { background: var(--branch-2); }
+
+  .branch-3 .card { border-color: var(--branch-3); }
+  .branch-3 .card-label { color: var(--branch-3); }
+  .branch-3 .branch-line { background: var(--branch-3); }
+
+  .branch-4 .card { border-color: var(--branch-4); }
+  .branch-4 .card-label { color: var(--branch-4); }
+  .branch-4 .branch-line { background: var(--branch-4); }
+
+  .branch-5 .card { border-color: var(--branch-5); }
+  .branch-5 .card-label { color: var(--branch-5); }
+  .branch-5 .branch-line { background: var(--branch-5); }
+
+  /* --- Children beneath a card --- */
+  .children {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+
+  .children-row {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    width: max-content;
+    max-width: 100vw;
+    margin: 0 auto;
+  }
+
+  .child-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 180px;
+    flex-shrink: 0;
+  }
+
+  /* --- Empty state --- */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+  }
+  .empty-state h2 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+  .empty-state p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* --- Legend --- */
+  .legend {
+    margin-top: 3rem;
+    padding: 1.25rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .legend h3 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+  .legend-items {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  /* --- Meta bar --- */
+  .meta-bar {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  /* --- Attribution footer --- */
+  .attribution {
+    margin-top: 2rem;
+    padding: 1.25rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .attribution a {
+    color: var(--outcome);
+    text-decoration: none;
+  }
+  .attribution a:hover {
+    text-decoration: underline;
+  }
+  .attribution p + p {
+    margin-top: 0.35rem;
+  }
+
+  /* --- Argo logo header --- */
+  .argo-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .argo-header svg {
+    width: 180px;
+    height: auto;
+    display: block;
+    margin: 0 auto 0.5rem;
+  }
+  .argo-header .argo-page-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .argo-svg-water { fill: none; stroke: #3B7DD8; stroke-width: 1.2; opacity: 0.5; }
+  .argo-svg-hull { fill: none; stroke: #1a1a2e; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .argo-svg-sail { fill: #3B7DD8; opacity: 0.85; }
+  .argo-svg-mast { fill: none; stroke: #1a1a2e; stroke-width: 2; stroke-linecap: round; }
+  .argo-svg-star { fill: #3B7DD8; }
+  .argo-svg-logo-text { font-family: Georgia, serif; font-size: 52px; font-weight: 500; fill: #1a1a2e; letter-spacing: 12px; text-anchor: middle; }
+  .argo-svg-tagline { font-family: Arial, sans-serif; font-size: 13px; font-weight: 400; fill: #3B7DD8; letter-spacing: 4px; text-anchor: middle; }
+</style>
+</head>
+<body>
+
+<div class="argo-header">
+  <svg viewBox="0 0 680 340" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Argo</title>
+    <desc>Argo — Continuous Discovery Operator</desc>
+    <circle class="argo-svg-star" cx="240" cy="68" r="2.2"/>
+    <circle class="argo-svg-star" cx="260" cy="52" r="1.5"/>
+    <circle class="argo-svg-star" cx="295" cy="62" r="1.8"/>
+    <circle class="argo-svg-star" cx="380" cy="55" r="2.2"/>
+    <circle class="argo-svg-star" cx="415" cy="68" r="1.5"/>
+    <circle class="argo-svg-star" cx="440" cy="48" r="1.8"/>
+    <circle class="argo-svg-star" cx="340" cy="44" r="2.8"/>
+    <line class="argo-svg-mast" x1="310" y1="190" x2="310" y2="108"/>
+    <line class="argo-svg-mast" x1="360" y1="190" x2="360" y2="125"/>
+    <path class="argo-svg-sail" d="M312 112 L312 186 L348 175 Z"/>
+    <path class="argo-svg-sail" d="M362 128 L362 186 L390 178 Z" opacity="0.65"/>
+    <path class="argo-svg-sail" d="M295 190 L311 140 L311 190 Z" opacity="0.5"/>
+    <path class="argo-svg-hull" d="M255 190 Q260 205 280 210 L405 210 Q425 205 430 190 Z"/>
+    <path class="argo-svg-hull" d="M268 210 Q340 228 408 210"/>
+    <path class="argo-svg-hull" d="M430 190 Q445 188 455 182"/>
+    <line class="argo-svg-hull" x1="290" y1="212" x2="278" y2="228" stroke-width="1.2" opacity="0.5"/>
+    <line class="argo-svg-hull" x1="308" y1="214" x2="298" y2="230" stroke-width="1.2" opacity="0.5"/>
+    <line class="argo-svg-hull" x1="326" y1="215" x2="318" y2="231" stroke-width="1.2" opacity="0.5"/>
+    <line class="argo-svg-hull" x1="344" y1="215" x2="338" y2="231" stroke-width="1.2" opacity="0.5"/>
+    <line class="argo-svg-hull" x1="362" y1="214" x2="357" y2="230" stroke-width="1.2" opacity="0.5"/>
+    <line class="argo-svg-hull" x1="380" y1="212" x2="377" y2="228" stroke-width="1.2" opacity="0.5"/>
+    <path class="argo-svg-water" d="M230 235 Q265 228 300 235 Q335 242 370 235 Q405 228 440 235"/>
+    <path class="argo-svg-water" d="M238 248 Q275 241 310 248 Q345 255 380 248 Q415 241 448 248" opacity="0.35"/>
+    <text class="argo-svg-logo-text" x="340" y="300">ARGO</text>
+    <text class="argo-svg-tagline" x="340" y="325">CONTINUOUS DISCOVERY</text>
+  </svg>
+  <div class="argo-page-title">Opportunity Solution Tree</div>
+</div>
+
+<div id="tree-root"></div>
+
+<div class="legend">
+  <h3>Route Legend</h3>
+  <div class="legend-items">
+    <span class="route-badge route-add">Add to Tree</span>
+    <span class="route-badge route-merge">Merge</span>
+    <span class="route-badge route-more">Needs More Interviews</span>
+    <span class="route-badge route-technical">Needs Technical Input</span>
+    <span class="route-badge route-reframe">Reframe</span>
+    <span class="route-badge route-park">Park</span>
+    <span class="route-badge route-escalate">Escalate</span>
+  </div>
+</div>
+
+<footer class="attribution">
+  <p>Based on the <strong>Opportunity Solution Tree</strong> framework by
+  <a href="https://www.producttalk.org/opportunity-solution-trees/" target="_blank" rel="noopener">Teresa Torres</a>,
+  from <em>Continuous Discovery Habits</em> (2021).</p>
+  <p>AI operator built by Joshua Baker using Jake van Clief's
+  <a href="https://www.skool.com/cliefnotes" target="_blank" rel="noopener">Interpretable Context Methodology</a>.</p>
+</footer>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+// TREE DATA — the operator updates this object, the renderer
+// reads it. To add nodes, edit the treeData below.
+// ──────────────────────────────────────────────────────────────
+
+const treeData = {
+  outcome: {
+    description: "Increase the percentage of spa clients who make their first online purchase within 30 days of an in-store treatment",
+    date: "2026-06-10"
+  },
+  opportunities: [
+    {
+      id: "opp-1",
+      description: "Spa clients cannot recall their personalized product recommendations when they later try to purchase online",
+      type: "Pain Point",
+      phase: "Purchase",
+      confidence: "Emerging",
+      route: "more",
+      branch: 1,
+      source: "Online loyalty member, repeat buyer, 2026-06-10",
+      quote: "It's hard to remember what to buy next.",
+      reasoning: "Reframed from subscription box feature request. Single data point from a Thin interview (opinion-sourced). Note: Interview 2 (Frau Schmidt) showed a client who DID recall successfully — the recall problem is not yet validated by story evidence.",
+      solutions: []
+    },
+    {
+      id: "opp-2",
+      description: "Spa partners lose retail commission when consulted clients purchase directly from babor.com, incentivized by online loyalty vouchers",
+      type: "Pain Point",
+      phase: "Purchase",
+      confidence: "Emerging",
+      route: "escalate",
+      branch: 2,
+      source: "Independent spa partner, Düsseldorf, 2026-06-10",
+      quote: "I spent 45 minutes doing the expert analysis, and Babor's corporate website poached my product sale.",
+      reasoning: "ESCALATE — channel conflict. The product outcome (increase spa-to-online purchases) directly undermines partner revenue. Partner lost 30% commission, threatens defection to Janssen Cosmetics / Dr. Grandel. Requires product leadership + channel management review before discovery continues.",
+      solutions: []
+    },
+    {
+      id: "opp-3",
+      description: "Product recommendations from Derma Visualizer analysis exist only on paper (Beauty Pass), creating no digital bridge between spa consultation and online purchase",
+      type: "Pain Point",
+      phase: "Purchase",
+      confidence: "Emerging",
+      route: "add",
+      branch: 3,
+      source: "Independent spa partner, Düsseldorf, 2026-06-10",
+      quote: "I wrote down her recommended routine on her paper Beauty Pass. She walked out without buying.",
+      reasoning: "Novel — reveals the infrastructure gap behind both the recall problem (opp-1) and the channel conflict (opp-2). The paper Beauty Pass can't help clients remember AND can't attribute sales back to the consulting partner. Strong story evidence from a Rich interview.",
+      solutions: [
+        {
+          id: "sol-1",
+          description: "Digital Beauty Pass — Derma Visualizer syncs to BABOR & me account",
+          assumption: "Feasibility: The Derma Visualizer output can be technically integrated with BABOR & me accounts and babor.com product catalog",
+          experiments: [
+            {
+              id: "exp-1",
+              description: "Derma Visualizer data audit — examine export format and map to product catalog",
+              assumption: "Feasibility: Visualizer outputs structured data that maps to product SKUs",
+              evidence: "Confirm: structured export with skin classifications matching product categories. Invalidate: images/PDFs only, no structured data.",
+              effort: "Hours — one export file + catalog schema"
+            },
+            {
+              id: "exp-2",
+              description: "GDPR/DSGVO skin data classification check with DPO",
+              assumption: "Ethical: Sharing skin analysis data between partner spa and babor.com complies with GDPR Art. 9",
+              evidence: "Confirm: not special category data, or covered by existing consent. Invalidate: Art. 9 health data requiring new legal framework.",
+              effort: "Hours — one meeting with legal/DPO"
+            },
+            {
+              id: "exp-3",
+              description: "Concierge test — manually email 5 clients post-consultation recommendation links",
+              assumption: "Desirability: Spa clients want their analysis results available online when they shop",
+              evidence: "Confirm: 3+ of 5 open, 2+ click product links. Invalidate: fewer than 2 open or engage.",
+              effort: "Days — one partner spa, 5 clients, 7-day tracking window"
+            }
+          ]
+        },
+        {
+          id: "sol-2",
+          description: "Post-visit SMS with shoppable recommendation link",
+          assumption: "Desirability: Clients will open and use a post-visit recommendation message rather than ignoring it as marketing noise"
+        },
+        {
+          id: "sol-3",
+          description: "QR code on paper Beauty Pass linking to personalized product page",
+          assumption: "Usability: Clients will scan a QR code from their Beauty Pass when ready to purchase rather than browsing independently or losing the card"
+        }
+      ]
+    }
+  ]
+};
+
+// ──────────────────────────────────────────────────────────────
+// RENDERER — reads treeData and builds the DOM
+// ──────────────────────────────────────────────────────────────
+
+const routeClasses = {
+  add: 'route-add',
+  merge: 'route-merge',
+  more: 'route-more',
+  technical: 'route-technical',
+  reframe: 'route-reframe',
+  park: 'route-park',
+  escalate: 'route-escalate'
+};
+
+const routeLabels = {
+  add: 'Add to Tree',
+  merge: 'Merge',
+  more: 'Needs More Interviews',
+  technical: 'Needs Technical Input',
+  reframe: 'Reframe',
+  park: 'Park',
+  escalate: 'Escalate'
+};
+
+function toggleDetail(e) {
+  const card = e.currentTarget;
+  const detail = card.querySelector('.card-detail');
+  if (detail) detail.classList.toggle('open');
+}
+
+function renderTree() {
+  const root = document.getElementById('tree-root');
+  root.innerHTML = '';
+
+  if (!treeData.outcome && treeData.opportunities.length === 0) {
+    root.innerHTML = `
+      <div class="empty-state">
+        <h2>No tree yet</h2>
+        <p>Start by defining a product outcome in <strong>01-outcome</strong>, then
+        process interviews through <strong>02-interview</strong> and
+        <strong>03-opportunities</strong>. The tree builds as you go.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const tree = document.createElement('div');
+  tree.className = 'tree';
+
+  // Outcome node
+  if (treeData.outcome) {
+    const meta = document.createElement('div');
+    meta.className = 'meta-bar';
+    meta.textContent = `Last updated: ${treeData.outcome.date || 'unknown'}`;
+    tree.appendChild(meta);
+
+    const outcomeNode = document.createElement('div');
+    outcomeNode.className = 'outcome-node';
+    outcomeNode.innerHTML = `
+      <div class="label">Outcome</div>
+      <div class="description">${esc(treeData.outcome.description)}</div>
+    `;
+    tree.appendChild(outcomeNode);
+  }
+
+  // Opportunities
+  if (treeData.opportunities.length > 0) {
+    const connector = document.createElement('div');
+    connector.className = 'connector-down';
+    tree.appendChild(connector);
+
+    const layer = document.createElement('div');
+    layer.className = 'layer';
+
+    treeData.opportunities.forEach(opp => {
+      const branch = document.createElement('div');
+      branch.className = `branch branch-${opp.branch || 1}`;
+
+      // Line from top
+      const line = document.createElement('div');
+      line.className = 'branch-line';
+      branch.appendChild(line);
+
+      // Opportunity card
+      const card = renderCard('Opportunity', opp.description, {
+        type: opp.type,
+        phase: opp.phase,
+        confidence: opp.confidence,
+        route: opp.route,
+        source: opp.source,
+        quote: opp.quote,
+        reasoning: opp.reasoning
+      });
+      branch.appendChild(card);
+
+      // Solutions
+      if (opp.solutions && opp.solutions.length > 0) {
+        const solLine = document.createElement('div');
+        solLine.className = 'branch-line';
+        branch.appendChild(solLine);
+
+        const childrenRow = document.createElement('div');
+        childrenRow.className = 'children-row';
+
+        opp.solutions.forEach(sol => {
+          const childBranch = document.createElement('div');
+          childBranch.className = `child-branch branch-${opp.branch || 1}`;
+
+          const solLine2 = document.createElement('div');
+          solLine2.className = 'branch-line';
+          childBranch.appendChild(solLine2);
+
+          const solCard = renderCard('Solution', sol.description, {
+            assumption: sol.assumption
+          });
+          childBranch.appendChild(solCard);
+
+          // Experiments
+          if (sol.experiments && sol.experiments.length > 0) {
+            sol.experiments.forEach(exp => {
+              const expLine = document.createElement('div');
+              expLine.className = 'branch-line';
+              childBranch.appendChild(expLine);
+
+              const expCard = renderCard('Experiment', exp.description, {
+                assumption: exp.assumption,
+                evidence: exp.evidence,
+                effort: exp.effort
+              });
+              childBranch.appendChild(expCard);
+            });
+          }
+
+          childrenRow.appendChild(childBranch);
+        });
+
+        branch.appendChild(childrenRow);
+      }
+
+      layer.appendChild(branch);
+    });
+
+    tree.appendChild(layer);
+  }
+
+  root.appendChild(tree);
+}
+
+function renderCard(label, description, details) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.addEventListener('click', toggleDetail);
+
+  let tagsHTML = '';
+  if (details.type || details.phase || details.confidence) {
+    const tags = [];
+    if (details.type) tags.push(details.type);
+    if (details.phase) tags.push(details.phase);
+    if (details.confidence) tags.push(details.confidence);
+    tagsHTML = `<div class="tags">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`;
+  }
+
+  let routeHTML = '';
+  if (details.route) {
+    const cls = routeClasses[details.route] || 'route-park';
+    const lbl = routeLabels[details.route] || details.route;
+    routeHTML = `<span class="route-badge ${cls}">${lbl}</span>`;
+  }
+
+  let detailHTML = '';
+  const detailParts = [];
+  if (details.source) detailParts.push(`<div class="detail-row"><span class="detail-label">Source</span><br>${esc(details.source)}</div>`);
+  if (details.quote) detailParts.push(`<div class="detail-row"><span class="detail-label">Quote</span><blockquote>${esc(details.quote)}</blockquote></div>`);
+  if (details.reasoning) detailParts.push(`<div class="detail-row"><span class="detail-label">Reasoning</span><br>${esc(details.reasoning)}</div>`);
+  if (details.assumption) detailParts.push(`<div class="detail-row"><span class="detail-label">Key Assumption</span><br>${esc(details.assumption)}</div>`);
+  if (details.evidence) detailParts.push(`<div class="detail-row"><span class="detail-label">Evidence Needed</span><br>${esc(details.evidence)}</div>`);
+  if (details.effort) detailParts.push(`<div class="detail-row"><span class="detail-label">Effort</span><br>${esc(details.effort)}</div>`);
+
+  if (detailParts.length > 0) {
+    detailHTML = `<div class="card-detail">${detailParts.join('')}</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-label">${esc(label)} ${routeHTML}</div>
+    <div class="card-description">${esc(description)}</div>
+    ${tagsHTML}
+    ${detailHTML}
+  `;
+
+  return card;
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+// Render on load
+renderTree();
+</script>
+
+</body>
+</html>

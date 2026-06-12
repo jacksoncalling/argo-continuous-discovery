@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Argo — Continuous Discovery Operator</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --text-light: #999;
+    --border: #e0e0e0;
+    --outcome: #7c3aed;
+    --branch-1: #3b82f6;
+    --branch-2: #ec4899;
+    --branch-3: #f59e0b;
+    --route-add: #10b981;
+    --route-more: #f59e0b;
+    --route-escalate: #ef4444;
+    --narrator-bg: #f8f7ff;
+    --narrator-border: #e8e5f5;
+    --thin: #ef4444;
+    --rich: #10b981;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* --- Language toggle --- */
+  .lang-toggle {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 100;
+    display: flex;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .lang-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+  }
+  .lang-btn.active {
+    background: var(--outcome);
+    color: white;
+  }
+  .lang-btn:hover:not(.active) {
+    background: #f0ecfc;
+  }
+
+  /* --- Scroll reveal --- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.15s; }
+  .reveal-delay-2 { transition-delay: 0.3s; }
+  .reveal-delay-3 { transition-delay: 0.45s; }
+  .reveal-delay-4 { transition-delay: 0.6s; }
+
+  /* --- Hero --- */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  .hero h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+  .hero .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 520px;
+    line-height: 1.6;
+  }
+  .hero .scroll-hint {
+    margin-top: 3rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* --- Sections --- */
+  .section {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 6rem 2rem;
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .section-divider {
+    width: 2px;
+    height: 80px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
+  /* --- Narrator --- */
+  .narrator {
+    background: var(--narrator-bg);
+    border: 1px solid var(--narrator-border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2.5rem;
+  }
+  .narrator .phase-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--outcome);
+    margin-bottom: 0.5rem;
+  }
+  .narrator p {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  /* --- Tree nodes --- */
+  .tree-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .connector {
+    width: 2px;
+    height: 2rem;
+    background: var(--border);
+  }
+  .outcome-node {
+    background: var(--card-bg);
+    border: 2px solid var(--outcome);
+    border-radius: 12px;
+    padding: 1.25rem 2rem;
+    text-align: center;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+  }
+  .outcome-node .node-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--outcome);
+    margin-bottom: 0.4rem;
+  }
+  .outcome-node .node-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .opp-card {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    width: 100%;
+    max-width: 340px;
+  }
+  .opp-card .node-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.35rem;
+  }
+  .opp-card .node-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .opp-card .tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .opp-card .tag {
+    font-size: 0.55rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .branch-1 { border-color: var(--branch-1) !important; }
+  .branch-1 .node-label { color: var(--branch-1); }
+  .branch-2 { border-color: var(--branch-2) !important; }
+  .branch-2 .node-label { color: var(--branch-2); }
+  .branch-3 { border-color: var(--branch-3) !important; }
+  .branch-3 .node-label { color: var(--branch-3); }
+
+  .route-badge {
+    display: inline-block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    color: white;
+    vertical-align: middle;
+    margin-left: 0.35rem;
+  }
+  .badge-more { background: var(--route-more); }
+  .badge-escalate { background: var(--route-escalate); }
+  .badge-add { background: var(--route-add); }
+
+  .opp-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .opp-row .opp-card {
+    flex: 1;
+    min-width: 200px;
+    max-width: 220px;
+  }
+
+  /* --- Solutions --- */
+  .sol-row {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .sol-card {
+    background: var(--card-bg);
+    border: 2px solid var(--branch-3);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    flex: 1;
+    min-width: 180px;
+    max-width: 210px;
+  }
+  .sol-card .node-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--branch-3);
+    margin-bottom: 0.3rem;
+  }
+  .sol-card .node-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .sol-card.selected {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  }
+
+  /* --- Experiments --- */
+  .exp-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    max-width: 280px;
+    width: 100%;
+  }
+  .exp-card {
+    background: var(--card-bg);
+    border: 2px solid var(--branch-3);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    width: 100%;
+  }
+  .exp-card .node-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--branch-3);
+    margin-bottom: 0.3rem;
+  }
+  .exp-card .node-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .exp-card .exp-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+  }
+  .exp-priority {
+    display: inline-block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    background: var(--branch-3);
+    color: white;
+    margin-right: 0.3rem;
+  }
+
+  /* --- Badges --- */
+  .quality-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+  }
+  .quality-thin {
+    background: #fef2f2;
+    color: var(--thin);
+    border: 1px solid #fecaca;
+  }
+  .quality-rich {
+    background: #f0fdf4;
+    color: var(--rich);
+    border: 1px solid #bbf7d0;
+  }
+
+  /* --- Quote --- */
+  .quote-block {
+    border-left: 3px solid var(--branch-3);
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    background: #fffbeb;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .quote-source {
+    font-style: normal;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+  }
+
+  /* --- Reframe --- */
+  .directive-reframe {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .directive-original {
+    font-size: 1.1rem;
+    color: var(--thin);
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+  .directive-arrow {
+    font-size: 1.5rem;
+    color: var(--text-light);
+    margin: 0.5rem 0;
+  }
+  .directive-reframed {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--outcome);
+  }
+
+  /* --- Human gate --- */
+  .human-gate {
+    border: 2px dashed var(--branch-3);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+    background: #fffbeb;
+    margin: 1rem 0;
+  }
+  .human-gate .gate-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--branch-3);
+    margin-bottom: 0.4rem;
+  }
+  .human-gate .gate-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  /* --- Finale --- */
+  .finale {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  .finale h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .finale p {
+    font-size: 1rem;
+    color: var(--text-muted);
+    max-width: 480px;
+    line-height: 1.7;
+  }
+  .finale .chain {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .finale .chain-node {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    color: white;
+  }
+  .finale .chain-arrow {
+    color: var(--text-light);
+    font-size: 1rem;
+  }
+
+  .attribution {
+    padding: 2rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .attribution a {
+    color: var(--outcome);
+    text-decoration: none;
+  }
+
+  /* --- Argo logo --- */
+  .argo-logo-wrap {
+    margin-bottom: 2rem;
+  }
+  .argo-logo-wrap svg {
+    width: 420px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .argo-svg-water { fill: none; stroke: #3B7DD8; stroke-width: 1.2; opacity: 0.5; }
+  .argo-svg-hull { fill: none; stroke: #1a1a2e; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .argo-svg-sail { fill: #3B7DD8; opacity: 0.85; }
+  .argo-svg-mast { fill: none; stroke: #1a1a2e; stroke-width: 2; stroke-linecap: round; }
+  .argo-svg-star { fill: #3B7DD8; }
+  .argo-svg-logo-text { font-family: Georgia, serif; font-size: 52px; font-weight: 500; fill: #1a1a2e; letter-spacing: 12px; text-anchor: middle; }
+  .argo-svg-tagline { font-family: Arial, sans-serif; font-size: 13px; font-weight: 400; fill: #3B7DD8; letter-spacing: 4px; text-anchor: middle; }
+</style>
+</head>
+<body>
+
+<!-- Language toggle -->
+<div class="lang-toggle">
+  <button class="lang-btn active" id="btn-de" onclick="setLang('de')">DE</button>
+  <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+</div>
+
+<!-- ==================== HERO ==================== -->
+<div class="hero">
+  <div class="reveal">
+    <div class="argo-logo-wrap">
+      <svg viewBox="0 0 680 340" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>Argo</title>
+        <desc>Argo — Continuous Discovery Operator logo</desc>
+        <circle class="argo-svg-star" cx="240" cy="68" r="2.2"/>
+        <circle class="argo-svg-star" cx="260" cy="52" r="1.5"/>
+        <circle class="argo-svg-star" cx="295" cy="62" r="1.8"/>
+        <circle class="argo-svg-star" cx="380" cy="55" r="2.2"/>
+        <circle class="argo-svg-star" cx="415" cy="68" r="1.5"/>
+        <circle class="argo-svg-star" cx="440" cy="48" r="1.8"/>
+        <circle class="argo-svg-star" cx="340" cy="44" r="2.8"/>
+        <line class="argo-svg-mast" x1="310" y1="190" x2="310" y2="108"/>
+        <line class="argo-svg-mast" x1="360" y1="190" x2="360" y2="125"/>
+        <path class="argo-svg-sail" d="M312 112 L312 186 L348 175 Z"/>
+        <path class="argo-svg-sail" d="M362 128 L362 186 L390 178 Z" opacity="0.65"/>
+        <path class="argo-svg-sail" d="M295 190 L311 140 L311 190 Z" opacity="0.5"/>
+        <path class="argo-svg-hull" d="M255 190 Q260 205 280 210 L405 210 Q425 205 430 190 Z"/>
+        <path class="argo-svg-hull" d="M268 210 Q340 228 408 210"/>
+        <path class="argo-svg-hull" d="M430 190 Q445 188 455 182"/>
+        <line class="argo-svg-hull" x1="290" y1="212" x2="278" y2="228" stroke-width="1.2" opacity="0.5"/>
+        <line class="argo-svg-hull" x1="308" y1="214" x2="298" y2="230" stroke-width="1.2" opacity="0.5"/>
+        <line class="argo-svg-hull" x1="326" y1="215" x2="318" y2="231" stroke-width="1.2" opacity="0.5"/>
+        <line class="argo-svg-hull" x1="344" y1="215" x2="338" y2="231" stroke-width="1.2" opacity="0.5"/>
+        <line class="argo-svg-hull" x1="362" y1="214" x2="357" y2="230" stroke-width="1.2" opacity="0.5"/>
+        <line class="argo-svg-hull" x1="380" y1="212" x2="377" y2="228" stroke-width="1.2" opacity="0.5"/>
+        <path class="argo-svg-water" d="M230 235 Q265 228 300 235 Q335 242 370 235 Q405 228 440 235"/>
+        <path class="argo-svg-water" d="M238 248 Q275 241 310 248 Q345 255 380 248 Q415 241 448 248" opacity="0.35"/>
+        <text class="argo-svg-logo-text" x="340" y="300">ARGO</text>
+        <text class="argo-svg-tagline" x="340" y="325">CONTINUOUS DISCOVERY</text>
+      </svg>
+    </div>
+    <p class="subtitle" data-i18n="hero-subtitle"></p>
+  </div>
+  <div class="scroll-hint" data-i18n="scroll-hint"></div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== OVERVIEW ==================== -->
+<div class="finale">
+  <div class="reveal">
+    <h2 data-i18n="finale-headline"></h2>
+    <p data-i18n="finale-body"></p>
+  </div>
+
+  <div class="chain reveal reveal-delay-1">
+    <span class="chain-node" style="background:var(--outcome);" data-i18n="chain-outcome"></span>
+    <span class="chain-arrow">→</span>
+    <span class="chain-node" style="background:var(--branch-1);" data-i18n="chain-interviews"></span>
+    <span class="chain-arrow">→</span>
+    <span class="chain-node" style="background:var(--branch-3);" data-i18n="chain-opportunities"></span>
+    <span class="chain-arrow">→</span>
+    <span class="chain-node" style="background:var(--branch-3);" data-i18n="chain-solutions"></span>
+    <span class="chain-arrow">→</span>
+    <span class="chain-node" style="background:var(--branch-3);" data-i18n="chain-experiments"></span>
+  </div>
+
+  <div class="reveal reveal-delay-2">
+    <p style="font-size:0.85rem; margin-top:1rem;" data-i18n="finale-credits"></p>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 1. DIRECTIVE ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-01-tag"></div>
+    <p data-i18n="phase-01-text"></p>
+  </div>
+
+  <div class="directive-reframe reveal reveal-delay-1">
+    <div class="directive-original" data-i18n="directive-original"></div>
+    <div class="directive-arrow">↓</div>
+    <div class="directive-reframed" data-i18n="directive-reframed"></div>
+  </div>
+
+  <div class="tree-display reveal reveal-delay-2">
+    <div class="outcome-node">
+      <div class="node-label" data-i18n="label-outcome"></div>
+      <div class="node-text" data-i18n="outcome-full"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 2. ANNA ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-02-tag"></div>
+    <p data-i18n="anna-narrator"></p>
+  </div>
+
+  <div class="reveal reveal-delay-1" style="text-align:center;">
+    <div class="quality-badge quality-thin" data-i18n="badge-thin"></div>
+  </div>
+
+  <div class="quote-block reveal reveal-delay-2">
+    <span data-i18n="anna-quote"></span>
+    <div class="quote-source" data-i18n="anna-source"></div>
+  </div>
+
+  <div class="narrator reveal reveal-delay-3" style="background:#fef2f2; border-color:#fecaca;">
+    <div class="phase-tag" style="color:var(--thin);" data-i18n="coaching-tag"></div>
+    <p data-i18n="anna-coaching"></p>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 3. FIRST OPP ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-03-tag"></div>
+    <p data-i18n="opp1-narrator"></p>
+  </div>
+
+  <div class="tree-display reveal reveal-delay-1">
+    <div class="outcome-node">
+      <div class="node-label" data-i18n="label-outcome"></div>
+      <div class="node-text" data-i18n="outcome-short"></div>
+    </div>
+    <div class="connector"></div>
+    <div class="opp-card branch-1">
+      <div class="node-label"><span data-i18n="label-opportunity"></span> <span class="route-badge badge-more" data-i18n="badge-needs-more"></span></div>
+      <div class="node-text" data-i18n="opp1-text"></div>
+      <div class="tags">
+        <span class="tag" data-i18n="tag-pain-point"></span>
+        <span class="tag" data-i18n="tag-purchase"></span>
+        <span class="tag" data-i18n="tag-emerging"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 4. FRAU SCHMIDT ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-02-tag"></div>
+    <p data-i18n="schmidt-narrator"></p>
+  </div>
+
+  <div class="reveal reveal-delay-1" style="text-align:center;">
+    <div class="quality-badge quality-rich" data-i18n="badge-rich"></div>
+  </div>
+
+  <div class="quote-block reveal reveal-delay-2">
+    <span data-i18n="schmidt-quote"></span>
+    <div class="quote-source" data-i18n="schmidt-source"></div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 5. TREE WIDENS ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-03-widens-tag"></div>
+    <p data-i18n="widens-narrator"></p>
+  </div>
+
+  <div class="tree-display reveal reveal-delay-1">
+    <div class="outcome-node">
+      <div class="node-label" data-i18n="label-outcome"></div>
+      <div class="node-text" data-i18n="outcome-short"></div>
+    </div>
+    <div class="connector"></div>
+    <div class="opp-row">
+      <div class="opp-card branch-1 reveal reveal-delay-1">
+        <div class="node-label"><span data-i18n="label-opportunity"></span> <span class="route-badge badge-more" data-i18n="badge-needs-more-short"></span></div>
+        <div class="node-text" data-i18n="opp1-short"></div>
+      </div>
+      <div class="opp-card branch-2 reveal reveal-delay-2">
+        <div class="node-label"><span data-i18n="label-opportunity"></span> <span class="route-badge badge-escalate" data-i18n="badge-escalate"></span></div>
+        <div class="node-text" data-i18n="opp2-short"></div>
+      </div>
+      <div class="opp-card branch-3 reveal reveal-delay-3">
+        <div class="node-label"><span data-i18n="label-opportunity"></span> <span class="route-badge badge-add" data-i18n="badge-add"></span></div>
+        <div class="node-text" data-i18n="opp3-short"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 6. HUMAN GATE ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="gate-phase-tag"></div>
+    <p data-i18n="gate-narrator"></p>
+  </div>
+
+  <div class="human-gate reveal reveal-delay-1">
+    <div class="gate-label" data-i18n="gate-label"></div>
+    <div class="gate-text" data-i18n="gate-text"></div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 7. SOLUTIONS ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-04-tag"></div>
+    <p data-i18n="solutions-narrator"></p>
+  </div>
+
+  <div class="tree-display">
+    <div class="opp-card branch-3 reveal" style="max-width:360px;">
+      <div class="node-label" data-i18n="label-target-opp"></div>
+      <div class="node-text" data-i18n="opp3-short"></div>
+    </div>
+    <div class="connector reveal"></div>
+    <div class="sol-row">
+      <div class="sol-card selected reveal reveal-delay-1">
+        <div class="node-label">Solution A ✓</div>
+        <div class="node-text" data-i18n="sol-a"></div>
+      </div>
+      <div class="sol-card reveal reveal-delay-2">
+        <div class="node-label">Solution B</div>
+        <div class="node-text" data-i18n="sol-b"></div>
+      </div>
+      <div class="sol-card reveal reveal-delay-3">
+        <div class="node-label">Solution C</div>
+        <div class="node-text" data-i18n="sol-c"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ==================== 8. EXPERIMENTS ==================== -->
+<div class="section">
+  <div class="narrator reveal">
+    <div class="phase-tag" data-i18n="phase-05-tag"></div>
+    <p data-i18n="experiments-narrator"></p>
+  </div>
+
+  <div class="exp-col reveal reveal-delay-1" style="margin:0 auto;">
+    <div class="exp-card">
+      <div class="node-label"><span class="exp-priority">Test 1</span> <span data-i18n="exp-feasibility"></span></div>
+      <div class="node-text" data-i18n="exp1-text"></div>
+      <div class="exp-meta" data-i18n="exp1-meta"></div>
+    </div>
+    <div class="connector"></div>
+    <div class="exp-card reveal reveal-delay-2">
+      <div class="node-label"><span class="exp-priority">Test 2</span> <span data-i18n="exp-ethical"></span></div>
+      <div class="node-text" data-i18n="exp2-text"></div>
+      <div class="exp-meta" data-i18n="exp2-meta"></div>
+    </div>
+    <div class="connector"></div>
+    <div class="exp-card reveal reveal-delay-3">
+      <div class="node-label"><span class="exp-priority">Test 3</span> <span data-i18n="exp-desirability"></span></div>
+      <div class="node-text" data-i18n="exp3-text"></div>
+      <div class="exp-meta" data-i18n="exp3-meta"></div>
+    </div>
+  </div>
+</div>
+
+
+<footer class="attribution">
+  <p>Discovery Operator by Joshua Baker · <a href="https://www.producttalk.org/opportunity-solution-trees/">Torres OST Framework</a> · <a href="https://www.skool.com/cliefnotes">ICM by Clief Notes</a></p>
+</footer>
+
+<script src="demo-scroll.js"></script>
+
+</body>
+</html>
